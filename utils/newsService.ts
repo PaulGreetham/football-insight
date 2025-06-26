@@ -83,6 +83,106 @@ const NON_SOCCER_SPORTS_BLACKLIST = [
   'figure skating'
 ];
 
+// Example football articles for when API is exhausted or fails
+const EXAMPLE_FOOTBALL_ARTICLES: NewsArticle[] = [
+  {
+    title: "Manchester United Complete Signing of Promising Young Midfielder",
+    description: "The Red Devils have secured the services of a highly-rated 22-year-old midfielder from Serie A in a deal worth €45 million. The player is expected to bring creativity and energy to United's midfield.",
+    content: "Manchester United have completed the signing of a promising young midfielder...",
+    url: "https://example.com/man-united-signing",
+    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&h=400&fit=crop",
+    publishedAt: new Date().toISOString(),
+    source: {
+      name: "Football Central",
+      url: "https://example.com"
+    }
+  },
+  {
+    title: "Liverpool Eye Summer Move for Champions League Winner",
+    description: "Jurgen Klopp's side are reportedly monitoring a 25-year-old striker who scored 18 goals in the Champions League last season. The player's current club values him at €80 million.",
+    content: "Liverpool are planning a major summer overhaul...",
+    url: "https://example.com/liverpool-target",
+    image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=800&h=400&fit=crop",
+    publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    source: {
+      name: "Football Transfer News",
+      url: "https://example.com"
+    }
+  },
+  {
+    title: "Real Madrid Prepare Record Bid for Premier League Star",
+    description: "Los Blancos are ready to break their transfer record to secure the signature of England international who has been in outstanding form this season with 24 goals and 12 assists.",
+    content: "Real Madrid are preparing a world-record bid...",
+    url: "https://example.com/real-madrid-bid",
+    image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=400&fit=crop",
+    publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
+    source: {
+      name: "Madrid Sports Daily",
+      url: "https://example.com"
+    }
+  },
+  {
+    title: "Barcelona Agree Deal for Brazilian Wonderkid",
+    description: "The Catalan giants have reached an agreement with Santos for their 18-year-old attacking midfielder, who has been compared to Ronaldinho. The deal includes a €100m release clause.",
+    content: "Barcelona have agreed terms with Santos...",
+    url: "https://example.com/barcelona-wonderkid",
+    image: "https://images.unsplash.com/photo-1552318965-6e6be7484ada?w=800&h=400&fit=crop",
+    publishedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
+    source: {
+      name: "Barca News",
+      url: "https://example.com"
+    }
+  },
+  {
+    title: "Chelsea Close to Finalizing Double Swoop",
+    description: "The Blues are in advanced negotiations for two high-profile signings: a German defender and an Argentine attacking midfielder. Combined fee expected to exceed €120 million.",
+    content: "Chelsea are working on two major signings...",
+    url: "https://example.com/chelsea-double-deal",
+    image: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=800&h=400&fit=crop",
+    publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(), // 8 hours ago
+    source: {
+      name: "London Football",
+      url: "https://example.com"
+    }
+  },
+  {
+    title: "PSG Set to Lose Star Player to Serie A Giants",
+    description: "Paris Saint-Germain's French international midfielder is reportedly close to joining Juventus on a free transfer when his contract expires this summer.",
+    content: "PSG face losing one of their key players...",
+    url: "https://example.com/psg-departure",
+    image: "https://images.unsplash.com/photo-1489944440615-453fc2b6a9a9?w=800&h=400&fit=crop",
+    publishedAt: new Date(Date.now() - 10 * 60 * 60 * 1000).toISOString(), // 10 hours ago
+    source: {
+      name: "Paris Football",
+      url: "https://example.com"
+    }
+  },
+  {
+    title: "Arsenal Target World Cup Hero in January Window",
+    description: "The Gunners are planning a January move for the Morocco international who starred at the World Cup. His current club is demanding €60 million for the versatile defender.",
+    content: "Arsenal are targeting a January reinforcement...",
+    url: "https://example.com/arsenal-january-target",
+    image: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800&h=400&fit=crop",
+    publishedAt: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(), // 12 hours ago
+    source: {
+      name: "Gunners Report",
+      url: "https://example.com"
+    }
+  },
+  {
+    title: "Bayern Munich Eye Premier League Goalkeeper",
+    description: "The German champions are monitoring the situation of England's number one goalkeeper whose contract talks with his current club have stalled. Bayern see him as a long-term replacement.",
+    content: "Bayern Munich are exploring goalkeeper options...",
+    url: "https://example.com/bayern-goalkeeper",
+    image: "https://images.unsplash.com/photo-1577223625816-7546f13df25d?w=800&h=400&fit=crop",
+    publishedAt: new Date(Date.now() - 14 * 60 * 60 * 1000).toISOString(), // 14 hours ago
+    source: {
+      name: "Bundesliga Today",
+      url: "https://example.com"
+    }
+  }
+];
+
 export class NewsService {
   private static readonly API_KEY = Constants.expoConfig?.extra?.EXPO_GNEWS_API_KEY || 
                                    Constants.manifest?.extra?.EXPO_GNEWS_API_KEY;
@@ -99,6 +199,32 @@ export class NewsService {
     console.log('API_KEY first 4 chars:', this.API_KEY?.substring(0, 4) || 'NONE');
     console.log('API_KEY last 4 chars:', this.API_KEY?.substring(this.API_KEY.length - 4) || 'NONE');
     console.log('====================');
+  }
+
+  /**
+   * Check if API error indicates exhausted quota or rate limit
+   */
+  private static isApiQuotaExhausted(errorMessage: string): boolean {
+    const quotaMessages = [
+      'rate limit',
+      'quota exceeded',
+      'too many requests',
+      'api limit',
+      'daily limit',
+      'monthly limit',
+      'requests per',
+      'usage limit'
+    ];
+    
+    return quotaMessages.some(msg => errorMessage.toLowerCase().includes(msg));
+  }
+
+  /**
+   * Get example articles when API is unavailable
+   */
+  private static getExampleArticles(limit: number = 15): NewsArticle[] {
+    console.log('📰 Using example articles (API unavailable)');
+    return EXAMPLE_FOOTBALL_ARTICLES.slice(0, limit);
   }
 
   /**
@@ -158,6 +284,17 @@ export class NewsService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ API Error Response:', errorText);
+        
+        // Check if it's a quota error and return examples
+        if (this.isApiQuotaExhausted(errorText)) {
+          console.warn('🚫 Transfer API quota exhausted. Using example articles.');
+          return this.getExampleArticles(Math.min(limit, 8)).filter(article => 
+            article.title.toLowerCase().includes('transfer') || 
+            article.title.toLowerCase().includes('signing') ||
+            article.title.toLowerCase().includes('deal')
+          );
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
@@ -188,6 +325,18 @@ export class NewsService {
       return soccerOnlyArticles;
     } catch (error) {
       console.error('❌ Error fetching football transfer news:', error);
+      
+      // Check if it's a quota/rate limit error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (this.isApiQuotaExhausted(errorMessage)) {
+        console.warn('🚫 Transfer API quota exhausted. Using example articles.');
+        return this.getExampleArticles(Math.min(limit, 8)).filter(article => 
+          article.title.toLowerCase().includes('transfer') || 
+          article.title.toLowerCase().includes('signing') ||
+          article.title.toLowerCase().includes('deal')
+        );
+      }
+      
       return [];
     }
   }
@@ -202,7 +351,7 @@ export class NewsService {
         return [];
       }
 
-      // Simple football search terms
+      // General football search terms
       const footballTerms = 'football OR soccer OR "Premier League" OR "Champions League"';
 
       const url = `${BASE_URL}/search?q=${encodeURIComponent(footballTerms)}&lang=en&max=${limit}&apikey=${this.API_KEY}`;
@@ -216,6 +365,13 @@ export class NewsService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Global football API Error Response:', errorText);
+        
+        // Check if it's a quota error
+        if (this.isApiQuotaExhausted(errorText)) {
+          console.warn('🚫 Global football API quota exhausted. Using example articles.');
+          return this.getExampleArticles(Math.min(limit, 8));
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
@@ -231,6 +387,14 @@ export class NewsService {
       return soccerOnlyArticles;
     } catch (error) {
       console.error('❌ Error fetching global football news:', error);
+      
+      // Check if it's a quota/rate limit error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (this.isApiQuotaExhausted(errorMessage)) {
+        console.warn('🚫 Global football API quota exhausted. Using example articles.');
+        return this.getExampleArticles(Math.min(limit, 8));
+      }
+      
       return [];
     }
   }
@@ -255,6 +419,13 @@ export class NewsService {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ Headlines API Error Response:', errorText);
+        
+        // Check if it's a quota error
+        if (this.isApiQuotaExhausted(errorText)) {
+          console.warn('🚫 Headlines API quota exhausted. Using example articles.');
+          return this.getExampleArticles(Math.min(limit, 8));
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
@@ -280,6 +451,14 @@ export class NewsService {
       return soccerOnlyHeadlines;
     } catch (error) {
       console.error('❌ Error fetching football headlines:', error);
+      
+      // Check if it's a quota/rate limit error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (this.isApiQuotaExhausted(errorMessage)) {
+        console.warn('🚫 Headlines API quota exhausted. Using example articles.');
+        return this.getExampleArticles(Math.min(limit, 8));
+      }
+      
       return [];
     }
   }
@@ -292,8 +471,8 @@ export class NewsService {
       console.log('🚀 Starting maximum worldwide football content fetch...');
       
       if (!this.API_KEY) {
-        console.error('❌ GNews API key not found for maximum content.');
-        return [];
+        console.warn('❌ GNews API key not found for maximum content. Using example articles.');
+        return this.getExampleArticles(50);
       }
 
       // Fetch from multiple sources in parallel for maximum content
@@ -312,6 +491,12 @@ export class NewsService {
       // Combine all sources
       const combined = [...transferNews, ...globalNews, ...headlines];
       console.log('  - Combined before dedup:', combined.length);
+      
+      // If no articles from any source, use examples
+      if (combined.length === 0) {
+        console.warn('📰 No articles from any API source. Using example articles.');
+        return this.getExampleArticles(50);
+      }
       
       // Remove duplicates by URL
       const unique = combined.filter((article, index, arr) => 
@@ -341,7 +526,17 @@ export class NewsService {
       return sorted;
     } catch (error) {
       console.error('❌ Error fetching maximum football content:', error);
-      return [];
+      
+      // Check if it's a quota/rate limit error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (this.isApiQuotaExhausted(errorMessage)) {
+        console.warn('🚫 API quota exhausted. Using example articles.');
+        return this.getExampleArticles(50);
+      }
+      
+      // For other errors, also fall back to examples
+      console.warn('📰 API error occurred. Using example articles.');
+      return this.getExampleArticles(50);
     }
   }
 
@@ -353,12 +548,18 @@ export class NewsService {
       console.log('🔄 Starting maximum worldwide football content fetch...');
       
       if (!this.API_KEY) {
-        console.error('❌ GNews API key not found for football content.');
-        return [];
+        console.warn('❌ GNews API key not found for football content. Using example articles.');
+        return this.getExampleArticles(limit);
       }
 
       // Use the maximum content method and limit results
       const allFootballContent = await this.getMaximumFootballContent();
+      
+      // If we got no articles from API, use examples
+      if (allFootballContent.length === 0) {
+        console.warn('📰 No articles from API. Using example articles.');
+        return this.getExampleArticles(limit);
+      }
       
       // Limit to requested number but ensure we get the most recent
       const limitedContent = allFootballContent.slice(0, Math.max(limit, 50)); // Minimum 50 articles for good variety
@@ -378,7 +579,17 @@ export class NewsService {
       return limitedContent;
     } catch (error) {
       console.error('❌ Error fetching football content:', error);
-      return [];
+      
+      // Check if it's a quota/rate limit error
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (this.isApiQuotaExhausted(errorMessage)) {
+        console.warn('🚫 API quota exhausted. Using example articles.');
+        return this.getExampleArticles(limit);
+      }
+      
+      // For other errors, also fall back to examples
+      console.warn('📰 API error occurred. Using example articles.');
+      return this.getExampleArticles(limit);
     }
   }
 

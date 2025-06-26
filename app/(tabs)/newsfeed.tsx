@@ -10,13 +10,23 @@ export default function NewsfeedScreen() {
   const [loading, setLoading] = useState(true);
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [usingExamples, setUsingExamples] = useState(false);
 
   const fetchNews = async () => {
     try {
       setError(null);
       const newsData = await NewsService.getMixedFootballContent(75);
       setArticles(newsData);
-      console.log('📱 Loaded', newsData.length, 'football articles in newsfeed');
+      
+      // Check if we're using example articles by looking at the source
+      const hasExampleSources = newsData.some(article => 
+        article.source.name === 'Football Central' || 
+        article.source.name === 'Football Transfer News' ||
+        article.url.includes('example.com')
+      );
+      setUsingExamples(hasExampleSources);
+      
+      console.log('📱 Loaded', newsData.length, 'football articles in newsfeed', hasExampleSources ? '(using examples)' : '(live data)');
     } catch (err) {
       setError('Failed to load football news. Please try again.');
       console.error('News fetch error:', err);
@@ -88,66 +98,73 @@ export default function NewsfeedScreen() {
       {/* Header */}
       <View className="bg-white px-4 py-4 border-b border-gray-200">
         <Text className="text-2xl font-bold text-gray-900">Football Central ⚽</Text>
-        <Text className="text-sm text-gray-600 mt-1">Latest football news worldwide</Text>
+        <Text className="text-sm text-gray-600 mt-1">
+          {usingExamples ? 'Example football news (API limit reached)' : 'Latest football news worldwide'}
+        </Text>
       </View>
 
-      {/* News Feed */}
+      {/* News Feed - Remove all horizontal padding/margins */}
       <ScrollView
         className="flex-1"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ flexGrow: 1 }}
       >
-        <View className="px-4 py-2">
+        {/* Remove the outer container padding */}
+        <View>
           {articles.map((article, index) => (
             <TouchableOpacity 
               key={`${article.url}-${index}`}
               onPress={() => openArticle(article.url)}
-              className="bg-white rounded-lg p-4 mb-4 shadow-sm border border-gray-100"
+              className="bg-white mb-2 shadow-sm border-b border-gray-100"
               activeOpacity={0.7}
             >
-              {/* Article Image */}
+              {/* Article Image - Full width, no padding */}
               {article.image && (
                 <Image
                   source={{ uri: article.image }}
-                  className="w-full h-48 rounded-lg mb-3"
+                  className="w-full h-48"
                   resizeMode="cover"
                 />
               )}
               
-              <View className="flex-row justify-between items-start mb-2">
-                <Text className="text-xs font-medium text-blue-600 uppercase tracking-wide flex-1">
-                  {article.source.name}
-                </Text>
-                <Text className="text-xs text-gray-500 ml-2">
-                  {NewsService.formatPublishedDate(article.publishedAt)}
-                </Text>
-              </View>
-              
-              <Text className="text-lg font-bold text-gray-900 mb-2 leading-6">
-                {article.title}
-              </Text>
-              
-              {article.description && (
-                <Text className="text-gray-600 text-sm leading-5 mb-3">
-                  {article.description}
-                </Text>
-              )}
-              
-              <View className="flex-row justify-between items-center">
-                <View className="flex-row space-x-4">
-                  <Text className="text-xs text-gray-500">⚽ Football News</Text>
+              {/* Content with padding only on sides */}
+              <View className="px-4 py-4">
+                <View className="flex-row justify-between items-start mb-2">
+                  <Text className="text-xs font-medium text-blue-600 uppercase tracking-wide flex-1">
+                    {article.source.name}
+                  </Text>
+                  <Text className="text-xs text-gray-500 ml-2">
+                    {NewsService.formatPublishedDate(article.publishedAt)}
+                  </Text>
                 </View>
-                <Text className="text-xs text-blue-600 font-medium">
-                  Tap to read →
+                
+                <Text className="text-lg font-bold text-gray-900 mb-2 leading-6">
+                  {article.title}
                 </Text>
+                
+                {article.description && (
+                  <Text className="text-gray-600 text-sm leading-5 mb-3">
+                    {article.description}
+                  </Text>
+                )}
+                
+                <View className="flex-row justify-between items-center">
+                  <View className="flex-row space-x-4">
+                    <Text className="text-xs text-gray-500">⚽ Football News</Text>
+                  </View>
+                  <Text className="text-xs text-blue-600 font-medium">
+                    Tap to read →
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
           ))}
           
           {articles.length === 0 && !loading && (
-            <View className="bg-white rounded-lg p-8 items-center">
+            <View className="bg-white p-8 items-center">
               <Text className="text-gray-500 text-center mb-2">
                 No football news available at the moment.
               </Text>
@@ -162,16 +179,6 @@ export default function NewsfeedScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </View>
-        
-        {/* Footer with article count */}
-        <View className="items-center py-4">
-          <Text className="text-xs text-gray-500">
-            {articles.length > 0 ? `Showing ${articles.length} football articles worldwide` : ''}
-          </Text>
-          <Text className="text-xs text-gray-400 mt-1">
-            {articles.length > 0 ? 'Pull down to refresh for latest content' : ''}
-          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
