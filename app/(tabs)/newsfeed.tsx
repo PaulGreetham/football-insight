@@ -2,6 +2,7 @@ import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Image, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { NewsService } from '../../utils/newsService';
 import { NewsArticle } from '../../types/news';
 
@@ -56,15 +57,25 @@ export default function NewsfeedScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <StatusBar style="dark" />
-        <View className="bg-white px-4 py-4 border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">Football Central ⚽</Text>
-          <Text className="text-sm text-gray-600 mt-1">Latest football news worldwide</Text>
+      <SafeAreaView className="flex-1 bg-blue-900" edges={['top']}>
+        <StatusBar style="light" />
+        {/* Enhanced Loading Header */}
+        <View className="bg-blue-900 px-6 py-6">
+          <View className="flex-row items-center justify-center">
+            <Text className="text-3xl font-black text-white ml-3 tracking-tight">
+              FOOTBALL INSIGHT
+            </Text>
+          </View>
+          <View className="flex-row items-center justify-center mt-2">
+            <Ionicons name="globe-outline" size={16} color="#93C5FD" />
+            <Text className="text-blue-200 text-sm font-semibold ml-2 tracking-wide">
+              WORLDWIDE COVERAGE
+            </Text>
+          </View>
         </View>
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#1D4ED8" />
-          <Text className="mt-4 text-gray-600">Loading worldwide football news...</Text>
+        <View className="flex-1 justify-center items-center bg-gray-50">
+          <ActivityIndicator size="large" color="#1E3A8A" />
+          <Text className="mt-4 text-gray-600 font-medium">Loading worldwide football news...</Text>
         </View>
       </SafeAreaView>
     );
@@ -72,19 +83,29 @@ export default function NewsfeedScreen() {
 
   if (error && articles.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <StatusBar style="dark" />
-        <View className="bg-white px-4 py-4 border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">Football Central ⚽</Text>
-          <Text className="text-sm text-gray-600 mt-1">Latest football news worldwide</Text>
+      <SafeAreaView className="flex-1 bg-blue-900" edges={['top']}>
+        <StatusBar style="light" />
+        {/* Enhanced Error Header */}
+        <View className="bg-blue-900 px-6 py-6">
+          <View className="flex-row items-center justify-center">
+            <Text className="text-3xl font-black text-white ml-3 tracking-tight">
+              FOOTBALL INSIGHT
+            </Text>
+          </View>
+          <View className="flex-row items-center justify-center mt-2">
+            <Ionicons name="globe-outline" size={16} color="#93C5FD" />
+            <Text className="text-blue-200 text-sm font-semibold ml-2 tracking-wide">
+              WORLDWIDE COVERAGE
+            </Text>
+          </View>
         </View>
-        <View className="flex-1 justify-center items-center px-4">
-          <Text className="text-red-600 text-center mb-4">{error}</Text>
+        <View className="flex-1 justify-center items-center px-4 bg-gray-50">
+          <Text className="text-red-600 text-center mb-4 font-medium">{error}</Text>
           <TouchableOpacity 
             onPress={fetchNews}
-            className="bg-blue-600 px-6 py-3 rounded-lg"
+            className="bg-blue-900 px-8 py-4 rounded-lg shadow-lg"
           >
-            <Text className="text-white font-semibold">Try Again</Text>
+            <Text className="text-white font-bold text-lg">Try Again</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -92,15 +113,42 @@ export default function NewsfeedScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <StatusBar style="dark" />
+    <SafeAreaView className="flex-1 bg-blue-900" edges={['top']}>
+      <StatusBar style="light" />
       
-      {/* Header */}
-      <View className="bg-white px-4 py-4 border-b border-gray-200">
-        <Text className="text-2xl font-bold text-gray-900">Football Central ⚽</Text>
-        <Text className="text-sm text-gray-600 mt-1">
-          {usingExamples ? 'Example football news (API limit reached)' : 'Latest football news worldwide'}
-        </Text>
+      {/* Enhanced Dynamic Header */}
+      <View className="bg-blue-900">
+        <View className="px-6 py-6">
+          <View className="flex-row items-center justify-center">
+            <Text className="text-3xl font-black text-white ml-3 tracking-tight">
+              FOOTBALL INSIGHT
+            </Text>
+          </View>
+          <View className="flex-row items-center justify-center mt-2">
+            <Ionicons name="globe-outline" size={16} color="#93C5FD" />
+            <Text className="text-blue-200 text-sm font-semibold ml-2 tracking-wide">
+              {usingExamples ? 'DEMO MODE • API LIMIT REACHED' : 'LIVE WORLDWIDE COVERAGE'}
+            </Text>
+          </View>
+        </View>
+        
+        {/* Stats Bar */}
+        <View className="bg-blue-800 px-6 py-3">
+          <View className="flex-row justify-center items-center space-x-8">
+            <View className="flex-row items-center">
+              <Ionicons name="time-outline" size={16} color="#93C5FD" />
+              <Text className="text-blue-200 text-sm font-bold ml-2">
+                LIVE UPDATES
+              </Text>
+            </View>
+            <View className="flex-row items-center">
+              <Ionicons name="flash-outline" size={16} color="#93C5FD" />
+              <Text className="text-blue-200 text-sm font-bold ml-2">
+                BREAKING NEWS
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* News Feed - Remove all horizontal padding/margins */}
@@ -118,7 +166,7 @@ export default function NewsfeedScreen() {
             <TouchableOpacity 
               key={`${article.url}-${index}`}
               onPress={() => openArticle(article.url)}
-              className="bg-white mb-2 shadow-sm border-b border-gray-100"
+              className="bg-white mb-1 shadow-sm border-b border-gray-100"
               activeOpacity={0.7}
             >
               {/* Article Image - Full width, no padding */}
@@ -132,32 +180,32 @@ export default function NewsfeedScreen() {
               
               {/* Content with padding only on sides */}
               <View className="px-4 py-4">
-                <View className="flex-row justify-between items-start mb-2">
-                  <Text className="text-xs font-medium text-blue-600 uppercase tracking-wide flex-1">
+                <View className="flex-row justify-between items-start mb-3">
+                  <Text className="text-sm font-bold text-blue-900 uppercase tracking-wide flex-1">
                     {article.source.name}
                   </Text>
-                  <Text className="text-xs text-gray-500 ml-2">
+                  <Text className="text-sm text-gray-600 ml-2 font-semibold">
                     {NewsService.formatPublishedDate(article.publishedAt)}
                   </Text>
                 </View>
                 
-                <Text className="text-lg font-bold text-gray-900 mb-2 leading-6">
+                <Text className="text-xl font-black text-gray-900 mb-3 leading-6">
                   {article.title}
                 </Text>
                 
                 {article.description && (
-                  <Text className="text-gray-600 text-sm leading-5 mb-3">
+                  <Text className="text-gray-700 text-base leading-6 mb-4 font-normal">
                     {article.description}
                   </Text>
                 )}
                 
-                <View className="flex-row justify-between items-center">
-                  <View className="flex-row space-x-4">
-                    <Text className="text-xs text-gray-500">⚽ Football News</Text>
+                <View className="flex-row justify-end items-center">
+                  <View className="flex-row items-center">
+                    <Text className="text-blue-900 text-base font-bold mr-2">
+                      READ MORE
+                    </Text>
+                    <Ionicons name="arrow-forward" size={18} color="#1E3A8A" />
                   </View>
-                  <Text className="text-xs text-blue-600 font-medium">
-                    Tap to read →
-                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
