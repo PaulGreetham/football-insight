@@ -1,4 +1,4 @@
-# Football Insight 🏈⚽
+# Football Insight ⚽
 
 A modern mobile application built with Expo, TypeScript, and Tailwind CSS for football insights and analytics.
 
