@@ -3,6 +3,86 @@ import { NewsResponse, NewsArticle } from '../types/news';
 
 const BASE_URL = 'https://gnews.io/api/v4';
 
+// Keywords that indicate non-soccer sports content (to be filtered out)
+const NON_SOCCER_SPORTS_BLACKLIST = [
+  // American Football - most specific terms only
+  'NFL',
+  'college football',
+  'NFL draft',
+  'quarterback',
+  'touchdown',
+  'Super Bowl',
+  'American Football',
+  'fantasy football',
+  'end zone',
+  'field goal',
+  'rushing yards',
+  'passing yards',
+  
+  // Hockey/NHL - specific terms only
+  'NHL',
+  'hockey',
+  'ice hockey',
+  'Stanley Cup',
+  'puck',
+  
+  // Basketball - specific terms only
+  'NBA',
+  'basketball',
+  'WNBA',
+  'slam dunk',
+  'three-pointer',
+  
+  // Rugby - specific terms
+  'rugby',
+  'Rugby Union',
+  'Rugby League',
+  'scrum',
+  
+  // Tennis - specific terms
+  'tennis',
+  'Wimbledon',
+  'ATP',
+  'WTA',
+  'Grand Slam tennis',
+  
+  // Swimming - specific terms
+  'swimming',
+  'freestyle',
+  'backstroke',
+  'breaststroke',
+  'butterfly stroke',
+  
+  // UFC/MMA - specific terms
+  'UFC',
+  'MMA',
+  'Mixed Martial Arts',
+  'Ultimate Fighting Championship',
+  'octagon',
+  
+  // Other major sports - specific terms only
+  'baseball',
+  'MLB',
+  'World Series',
+  'home run',
+  'cricket',
+  'wicket',
+  'bowling average',
+  'golf',
+  'PGA Tour',
+  'boxing',
+  'Formula 1',
+  'F1 racing',
+  'NASCAR',
+  'volleyball',
+  'track and field',
+  'marathon',
+  'cycling',
+  'Tour de France',
+  'Winter Olympics',
+  'figure skating'
+];
+
 export class NewsService {
   private static readonly API_KEY = Constants.expoConfig?.extra?.EXPO_GNEWS_API_KEY || 
                                    Constants.manifest?.extra?.EXPO_GNEWS_API_KEY;
@@ -22,9 +102,35 @@ export class NewsService {
   }
 
   /**
+   * Filter out non-soccer sports content to keep only soccer/football
+   */
+  private static filterOutNonSoccerSports(articles: NewsArticle[]): NewsArticle[] {
+    const filtered = articles.filter(article => {
+      const text = (article.title + ' ' + article.description).toLowerCase();
+      
+      // Check if any non-soccer sports keywords are present
+      const hasNonSoccerSportsContent = NON_SOCCER_SPORTS_BLACKLIST.some(keyword => 
+        text.includes(keyword.toLowerCase())
+      );
+      
+      if (hasNonSoccerSportsContent) {
+        console.log('🚫 Filtered out non-soccer sports article:', article.title);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    console.log(`🔍 Filtered out ${articles.length - filtered.length} non-soccer sports articles`);
+    console.log(`✅ Keeping ${filtered.length} soccer/football articles`);
+    
+    return filtered;
+  }
+
+  /**
    * Fetch football transfer news specifically
    */
-  static async getFootballTransferNews(limit: number = 15): Promise<NewsArticle[]> {
+  static async getFootballTransferNews(limit: number = 100): Promise<NewsArticle[]> {
     try {
       this.logApiKeyStatus();
       
@@ -34,15 +140,15 @@ export class NewsService {
       }
 
       // Simplified transfer-focused search (under 200 chars)
-      const transferTerms = 'football transfer OR soccer transfer OR "transfer window" OR "transfer news"';
+      const transferTerms = 'football transfer OR soccer transfer OR "transfer window"';
 
-      const url = `${BASE_URL}/search?q=${encodeURIComponent(transferTerms)}&lang=en&country=gb&max=${limit}&apikey=${this.API_KEY}`;
+      const url = `${BASE_URL}/search?q=${encodeURIComponent(transferTerms)}&lang=en&max=${limit}&apikey=${this.API_KEY}`;
       
-      console.log('⚽ Fetching football transfer news...');
+      console.log('⚽ Fetching football transfer news worldwide...');
       console.log('📍 URL (without API key):', url.replace(/apikey=[^&]*/, 'apikey=***'));
       console.log('🔄 Transfer-focused search terms:', transferTerms);
       console.log('📏 Query length:', transferTerms.length, 'characters');
-      console.log('🌍 Parameters: lang=en, country=gb, max=' + limit);
+      console.log('🌍 Parameters: lang=en, max=' + limit);
       
       const response = await fetch(url);
       
@@ -56,8 +162,8 @@ export class NewsService {
       }
       
       const data: NewsResponse = await response.json();
-      console.log('✅ Fetched transfer articles:', data.articles.length);
-      console.log('📊 Total transfer articles available:', data.totalArticles);
+      console.log('✅ Fetched raw transfer articles:', data.articles.length);
+      console.log('📊 Total transfer articles available worldwide:', data.totalArticles);
       
       // Filter articles to ensure they're actually about transfers
       const transferArticles = data.articles.filter(article => {
@@ -72,18 +178,14 @@ export class NewsService {
         return transferKeywords.some(keyword => text.includes(keyword));
       });
       
-      console.log('🎯 Filtered to transfer-only articles:', transferArticles.length);
+      console.log('🎯 After transfer keyword filter:', transferArticles.length, 'articles');
       
-      // Log first few articles for debugging
-      transferArticles.slice(0, 3).forEach((article, index) => {
-        console.log(`📰 Transfer ${index + 1}:`, {
-          title: article.title,
-          source: article.source.name,
-          publishedAt: article.publishedAt
-        });
-      });
+      // Filter out non-soccer sports content
+      const soccerOnlyArticles = this.filterOutNonSoccerSports(transferArticles);
       
-      return transferArticles;
+      console.log('🏆 Final transfer articles after all filters:', soccerOnlyArticles.length);
+      
+      return soccerOnlyArticles;
     } catch (error) {
       console.error('❌ Error fetching football transfer news:', error);
       return [];
@@ -91,38 +193,154 @@ export class NewsService {
   }
 
   /**
-   * Fetch additional transfer rumors and speculation
+   * Fetch general football news worldwide
    */
-  static async getTransferRumors(limit: number = 10): Promise<NewsArticle[]> {
+  static async getGlobalFootballNews(limit: number = 100): Promise<NewsArticle[]> {
     try {
       if (!this.API_KEY) {
-        console.error('❌ GNews API key not found for transfer rumors.');
+        console.error('❌ GNews API key not found for global football news.');
         return [];
       }
 
-      // Simplified rumors search (under 200 chars)
-      const rumorTerms = 'football rumor OR soccer rumour OR "transfer speculation" OR "linked with"';
+      // Simple football search terms
+      const footballTerms = 'football OR soccer OR "Premier League" OR "Champions League"';
 
-      const url = `${BASE_URL}/search?q=${encodeURIComponent(rumorTerms)}&lang=en&country=gb&max=${limit}&apikey=${this.API_KEY}`;
+      const url = `${BASE_URL}/search?q=${encodeURIComponent(footballTerms)}&lang=en&max=${limit}&apikey=${this.API_KEY}`;
       
-      console.log('📰 Fetching transfer rumors...');
-      console.log('📍 Rumors URL (without API key):', url.replace(/apikey=[^&]*/, 'apikey=***'));
-      console.log('📏 Rumors query length:', rumorTerms.length, 'characters');
+      console.log('🌍 Fetching global football news...');
+      console.log('📍 URL (without API key):', url.replace(/apikey=[^&]*/, 'apikey=***'));
+      console.log('📏 Query length:', footballTerms.length, 'characters');
       
       const response = await fetch(url);
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ Rumors API Error Response:', errorText);
+        console.error('❌ Global football API Error Response:', errorText);
         throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       
       const data: NewsResponse = await response.json();
-      console.log('✅ Fetched transfer rumors:', data.articles.length);
+      console.log('✅ Fetched raw global football articles:', data.articles.length);
+      console.log('📊 Total global football articles available:', data.totalArticles);
       
-      return data.articles;
+      // Filter out non-soccer sports content
+      const soccerOnlyArticles = this.filterOutNonSoccerSports(data.articles);
+      
+      console.log('🏆 Final global articles after filtering:', soccerOnlyArticles.length);
+      
+      return soccerOnlyArticles;
     } catch (error) {
-      console.error('❌ Error fetching transfer rumors:', error);
+      console.error('❌ Error fetching global football news:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch football headlines from sports category
+   */
+  static async getFootballHeadlines(limit: number = 100): Promise<NewsArticle[]> {
+    try {
+      if (!this.API_KEY) {
+        console.error('❌ GNews API key not found for football headlines.');
+        return [];
+      }
+
+      const url = `${BASE_URL}/top-headlines?category=sports&lang=en&max=${limit}&apikey=${this.API_KEY}`;
+      
+      console.log('🏆 Fetching sports headlines worldwide...');
+      console.log('📍 URL (without API key):', url.replace(/apikey=[^&]*/, 'apikey=***'));
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Headlines API Error Response:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+      
+      const data: NewsResponse = await response.json();
+      console.log('✅ Fetched raw sports headlines:', data.articles.length);
+      
+      // Filter to football/soccer only
+      const footballHeadlines = data.articles.filter(article => {
+        const text = (article.title + ' ' + article.description).toLowerCase();
+        return text.includes('football') || text.includes('soccer') || 
+               text.includes('premier league') || text.includes('champions league') ||
+               text.includes('fifa') || text.includes('uefa') || text.includes('la liga') ||
+               text.includes('serie a') || text.includes('bundesliga') || text.includes('ligue 1');
+      });
+      
+      console.log('⚽ After football keyword filter:', footballHeadlines.length, 'headlines');
+      
+      // Filter out non-soccer sports content
+      const soccerOnlyHeadlines = this.filterOutNonSoccerSports(footballHeadlines);
+      
+      console.log('🏆 Final headlines after all filters:', soccerOnlyHeadlines.length);
+      
+      return soccerOnlyHeadlines;
+    } catch (error) {
+      console.error('❌ Error fetching football headlines:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch maximum worldwide football content
+   */
+  static async getMaximumFootballContent(): Promise<NewsArticle[]> {
+    try {
+      console.log('🚀 Starting maximum worldwide football content fetch...');
+      
+      if (!this.API_KEY) {
+        console.error('❌ GNews API key not found for maximum content.');
+        return [];
+      }
+
+      // Fetch from multiple sources in parallel for maximum content
+      console.log('📡 Making parallel API requests...');
+      const [transferNews, globalNews, headlines] = await Promise.all([
+        this.getFootballTransferNews(100), // Maximum transfer-specific news
+        this.getGlobalFootballNews(100),   // Maximum general football news  
+        this.getFootballHeadlines(100)     // Maximum top sports headlines (filtered to football)
+      ]);
+
+      console.log('📊 Maximum Content Results Summary:');
+      console.log('  - Transfer news articles:', transferNews.length);
+      console.log('  - Global football articles:', globalNews.length);
+      console.log('  - Football headlines:', headlines.length);
+
+      // Combine all sources
+      const combined = [...transferNews, ...globalNews, ...headlines];
+      console.log('  - Combined before dedup:', combined.length);
+      
+      // Remove duplicates by URL
+      const unique = combined.filter((article, index, arr) => 
+        arr.findIndex(a => a.url === article.url) === index
+      );
+
+      console.log('  - After deduplication:', unique.length);
+
+      // Sort by publication date (newest first)
+      const sorted = unique
+        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+      console.log('🎉 FINAL RESULT: Returning', sorted.length, 'unique football articles worldwide');
+      
+      // Log first 10 articles for debugging
+      sorted.slice(0, 10).forEach((article, index) => {
+        const isTransfer = article.title.toLowerCase().includes('transfer') || 
+                          article.title.toLowerCase().includes('signing') ||
+                          article.title.toLowerCase().includes('deal');
+        console.log(`⚽ ${index + 1}. ${article.title} (${article.source.name}) ${isTransfer ? '🔄' : '📰'}`);
+      });
+      
+      if (sorted.length < 50) {
+        console.warn('⚠️ WARNING: Only got', sorted.length, 'articles. This seems low. Check API limits or filtering.');
+      }
+      
+      return sorted;
+    } catch (error) {
+      console.error('❌ Error fetching maximum football content:', error);
       return [];
     }
   }
@@ -132,49 +350,34 @@ export class NewsService {
    */
   static async getMixedFootballContent(limit: number = 15): Promise<NewsArticle[]> {
     try {
-      console.log('🔄 Starting transfer-focused content fetch...');
+      console.log('🔄 Starting maximum worldwide football content fetch...');
       
       if (!this.API_KEY) {
-        console.error('❌ GNews API key not found for transfer content.');
+        console.error('❌ GNews API key not found for football content.');
         return [];
       }
 
-      const [transferNews, transferRumors] = await Promise.all([
-        this.getFootballTransferNews(Math.ceil(limit * 0.8)), // 80% confirmed transfers
-        this.getTransferRumors(Math.ceil(limit * 0.2)) // 20% rumors/speculation
-      ]);
-
-      console.log('📊 Transfer Results Summary:');
-      console.log('  - Confirmed transfers:', transferNews.length);
-      console.log('  - Transfer rumors:', transferRumors.length);
-
-      // Combine and remove duplicates by URL
-      const combined = [...transferNews, ...transferRumors];
-      const unique = combined.filter((article, index, arr) => 
-        arr.findIndex(a => a.url === article.url) === index
-      );
-
-      console.log('  - Combined total:', combined.length);
-      console.log('  - After deduplication:', unique.length);
-
-      // Sort by publication date (newest first)
-      const sorted = unique
-        .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-        .slice(0, limit);
-
-      console.log('✅ Returning', sorted.length, 'transfer articles');
+      // Use the maximum content method and limit results
+      const allFootballContent = await this.getMaximumFootballContent();
       
+      // Limit to requested number but ensure we get the most recent
+      const limitedContent = allFootballContent.slice(0, Math.max(limit, 50)); // Minimum 50 articles for good variety
+      
+      console.log('📊 Content Results Summary:');
+      console.log('  - Total football articles available:', allFootballContent.length);
+      console.log('  - Returning:', limitedContent.length, 'articles');
+
       // Log article titles for debugging
-      sorted.forEach((article, index) => {
+      limitedContent.slice(0, 5).forEach((article, index) => {
         const isTransfer = article.title.toLowerCase().includes('transfer') || 
                           article.title.toLowerCase().includes('signing') ||
                           article.title.toLowerCase().includes('deal');
         console.log(`⚽ ${index + 1}. ${article.title} (${article.source.name}) ${isTransfer ? '🔄' : '📰'}`);
       });
       
-      return sorted;
+      return limitedContent;
     } catch (error) {
-      console.error('❌ Error fetching transfer content:', error);
+      console.error('❌ Error fetching football content:', error);
       return [];
     }
   }
